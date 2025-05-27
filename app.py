@@ -10,16 +10,29 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Simple calorie estimation function (you might want to use a more sophisticated API or ML model)
-def estimate_calories(image):
+# Translations for responses
+TRANSLATIONS = {
+    'en': {
+        'unknown_food': 'Unknown food item',
+        'calories': '300-400',
+        'confidence': 'medium'
+    },
+    'ru': {
+        'unknown_food': 'Неизвестный продукт',
+        'calories': '300-400',
+        'confidence': 'средняя'
+    }
+}
+
+def estimate_calories(image, language='en'):
     # This is a placeholder. In a real application, you would:
     # 1. Use a food detection model to identify the food
     # 2. Use a calorie estimation API or database
     # For now, we'll return a dummy response
     return {
-        "calories": "300-400",
-        "food_type": "Unknown food item",
-        "confidence": "medium"
+        "calories": TRANSLATIONS[language]['calories'],
+        "food_type": TRANSLATIONS[language]['unknown_food'],
+        "confidence": TRANSLATIONS[language]['confidence']
     }
 
 @app.route('/')
@@ -29,8 +42,15 @@ def index():
 @app.route('/process-image', methods=['POST'])
 def process_image():
     try:
-        # Get the image data from the request
-        image_data = request.json['image']
+        # Get the image data and language from the request
+        data = request.json
+        image_data = data['image']
+        language = data.get('language', 'en')
+        
+        # Validate language
+        if language not in TRANSLATIONS:
+            language = 'en'
+        
         # Remove the data URL prefix
         image_data = image_data.split(',')[1]
         
@@ -39,7 +59,7 @@ def process_image():
         image = Image.open(io.BytesIO(image_bytes))
         
         # Process the image and estimate calories
-        result = estimate_calories(image)
+        result = estimate_calories(image, language)
         
         return jsonify(result)
     except Exception as e:

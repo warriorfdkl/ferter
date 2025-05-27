@@ -40,66 +40,115 @@
             background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
             display: none;
         }
+        .language-content {
+            display: none;
+        }
+        .language-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Food Calorie Estimator</h1>
-        <button id="cameraButton">Take Photo</button>
-        <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;">
-        <img id="preview" alt="Preview">
-        <div id="result"></div>
+        <!-- English content -->
+        <div id="en" class="language-content">
+            <h1>Food Calorie Estimator</h1>
+            <button id="cameraButton">📸 Take Photo</button>
+            <input type="file" id="fileInput" accept="image/*" capture="camera" style="display: none;">
+            <img id="preview" alt="Preview">
+            <div id="result"></div>
+        </div>
+
+        <!-- Russian content -->
+        <div id="ru" class="language-content">
+            <h1>Определение калорий в еде</h1>
+            <button id="cameraButton_ru">📸 Сделать фото</button>
+            <input type="file" id="fileInput_ru" accept="image/*" capture="camera" style="display: none;">
+            <img id="preview_ru" alt="Предпросмотр">
+            <div id="result_ru"></div>
+        </div>
     </div>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand();
 
+        // Get language from Telegram WebApp
+        const userLanguage = tg.initDataUnsafe?.user?.language_code || 'en';
+        
+        // Show content based on language
+        document.getElementById(userLanguage === 'ru' ? 'ru' : 'en').classList.add('active');
+
+        // English version
         const cameraButton = document.getElementById('cameraButton');
         const fileInput = document.getElementById('fileInput');
         const preview = document.getElementById('preview');
         const result = document.getElementById('result');
 
-        cameraButton.addEventListener('click', () => {
-            fileInput.click();
-        });
+        // Russian version
+        const cameraButton_ru = document.getElementById('cameraButton_ru');
+        const fileInput_ru = document.getElementById('fileInput_ru');
+        const preview_ru = document.getElementById('preview_ru');
+        const result_ru = document.getElementById('result_ru');
 
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    preview.style.display = 'block';
-                    processImage(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        function setupLanguageVersion(button, input, preview, result, isRussian) {
+            button.addEventListener('click', () => {
+                input.click();
+            });
 
-        function processImage(imageData) {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
+                        processImage(e.target.result, result, isRussian);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        // Setup both language versions
+        setupLanguageVersion(cameraButton, fileInput, preview, result, false);
+        setupLanguageVersion(cameraButton_ru, fileInput_ru, preview_ru, result_ru, true);
+
+        function processImage(imageData, resultElement, isRussian) {
             fetch('/process-image', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ image: imageData })
+                body: JSON.stringify({ 
+                    image: imageData,
+                    language: isRussian ? 'ru' : 'en'
+                })
             })
             .then(response => response.json())
             .then(data => {
-                result.style.display = 'block';
-                result.innerHTML = `
-                    <h3>Results:</h3>
-                    <p>Estimated calories: ${data.calories}</p>
-                    <p>Food type: ${data.food_type}</p>
-                    <p>Confidence: ${data.confidence}</p>
-                `;
-                tg.MainButton.setText('Done');
+                resultElement.style.display = 'block';
+                if (isRussian) {
+                    resultElement.innerHTML = `
+                        <h3>Результаты:</h3>
+                        <p>Примерное количество калорий: ${data.calories}</p>
+                        <p>Тип еды: ${data.food_type}</p>
+                        <p>Уверенность: ${data.confidence}</p>
+                    `;
+                } else {
+                    resultElement.innerHTML = `
+                        <h3>Results:</h3>
+                        <p>Estimated calories: ${data.calories}</p>
+                        <p>Food type: ${data.food_type}</p>
+                        <p>Confidence: ${data.confidence}</p>
+                    `;
+                }
+                tg.MainButton.setText(isRussian ? 'Готово' : 'Done');
                 tg.MainButton.show();
             })
             .catch(error => {
-                result.style.display = 'block';
-                result.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                resultElement.style.display = 'block';
+                resultElement.innerHTML = `<p style="color: red;">${isRussian ? 'Ошибка: ' : 'Error: '}${error.message}</p>`;
             });
         }
 
