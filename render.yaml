@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: food-calorie-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+    plan: free 
