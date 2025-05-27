@@ -18,7 +18,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Send a message with a button that opens the web app."""
     
     # Create button with web app
-    web_app = WebAppInfo(url=os.getenv("WEBAPP_URL", "https://your-app-name.onrender.com"))
+    web_app = WebAppInfo(url="https://ferter.onrender.com")
     keyboard = [[KeyboardButton("📸 Open Camera", web_app=web_app)]]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     
